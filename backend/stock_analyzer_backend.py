@@ -1,7 +1,7 @@
 # Install necessary libraries before running:
 # pip install Flask Flask-Cors yfinance pandas pandas-ta
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import yfinance as yf
 import pandas as pd
@@ -244,6 +244,10 @@ def analyze_stock_endpoint(ticker, timeframe):
     analysis_result = get_stock_analysis(ticker, timeframe)
     return jsonify(analysis_result)
 
+@app.route("/")
+def index():
+    return render_template('index.html')
+    
 # -----------------------------------------------------------------------------
 # Run the Flask App
 # -----------------------------------------------------------------------------

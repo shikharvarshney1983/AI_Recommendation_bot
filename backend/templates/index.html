@@ -220,7 +220,7 @@
                                 <div className="flex justify-center gap-2 mb-6">
                                     {['daily', 'weekly', 'monthly'].map(tf => (
                                         <button key={tf} onClick={() => setTimeframe(tf)} 
-                                                className={`timeframe-btn ${timeframe === tf ? 'timeframe-btn-active' : 'timeframe-btn-inactive'}`}>
+                                                className={`bg-gray-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center shadow-lg hover:shadow-green-500/30 ${timeframe === tf ? 'bg-green-600 text-white shadow' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
                                             {tf.charAt(0).toUpperCase() + tf.slice(1)}
                                         </button>
                                     ))}

@@ -13,42 +13,21 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* Custom font and animations */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-        }
+        body { font-family: 'Inter', sans-serif; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-        /* Custom styles for timeframe selector */
-        .timeframe-btn {
-            @apply px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900;
-        }
-        .timeframe-btn-active {
-            @apply bg-green-600 text-white shadow;
-        }
-        .timeframe-btn-inactive {
-            @apply bg-gray-700 text-gray-300 hover:bg-gray-600;
-        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
     </style>
 </head>
 <body class="bg-gray-900">
     <div id="root"></div>
 
     <script type="text/babel">
-        // Helper function to create SVG icons
-        const createIcon = (path, size = 24) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {path}
-            </svg>
-        );
-
-        // Icon definitions
+        // --- Icon Definitions ---
+        const createIcon = (path, size = 24) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{path}</svg>);
         const icons = {
             helpCircle: createIcon(<><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></>, 14),
             trendingUp: createIcon(<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></>),
@@ -59,131 +38,105 @@
             shield: createIcon(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></>, 20),
             arrowUp: createIcon(<><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></>, 20),
             activity: createIcon(<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></>, 48),
-            arrowsUpDown: createIcon(<><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></>, 20)
+            arrowsUpDown: createIcon(<><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></>, 20),
+            newspaper: createIcon(<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h4v18H4Z M18 9h-6V7h6v2Z M18 13h-6v-2h6v2Z M18 17h-6v-2h6v2Z"/>, 20)
         };
 
+        // --- Reusable Components ---
         const Tooltip = ({ text, children }) => {
-            const [isTooltipVisible, setTooltipVisible] = React.useState(false);
+            const [isVisible, setVisible] = React.useState(false);
             return (
-                <div className="relative flex items-center" 
-                    onMouseEnter={() => setTooltipVisible(true)} 
-                    onMouseLeave={() => setTooltipVisible(false)}>
-                {children}
-                {isTooltipVisible && (
-                    <div className="absolute left-full ml-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-md shadow-lg z-10">
-                    {text}
-                    </div>
-                )}
+                <div className="relative flex items-center" onMouseEnter={() => setVisible(true)} onMouseLeave={() => setVisible(false)}>
+                    {children}
+                    {isVisible && <div className="absolute left-full ml-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-md shadow-lg z-10">{text}</div>}
                 </div>
             );
         };
-        
+
         const Indicator = ({ icon, label, value, unit = '', tooltipText, valueClassName = 'text-white' }) => (
             <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-                <div className="flex items-center">
-                {icon}
-                <span className="ml-3 text-sm font-medium text-gray-300">{label}</span>
-                <Tooltip text={tooltipText}>
-                    <div className="text-gray-500 cursor-help">{icons.helpCircle}</div>
-                </Tooltip>
-                </div>
+                <div className="flex items-center"><div className="text-gray-400">{icon}</div><span className="ml-3 text-sm font-medium text-gray-300">{label}</span><Tooltip text={tooltipText}><div className="ml-1 text-gray-500 cursor-help">{icons.helpCircle}</div></Tooltip></div>
                 <span className={`text-sm font-semibold ${valueClassName}`}>{value} {unit}</span>
             </div>
         );
 
         const RecommendationCard = ({ recommendation, reason }) => {
-            const getRecommendationStyle = (rec) => {
-                switch (rec) {
-                case "Buy": case "Buy/Add": case "Add":
-                    return { bg: "bg-green-500/10", border: "border-green-500", text: "text-green-400", icon: icons.trendingUp };
-                case "Sell":
-                    return { bg: "bg-red-500/10", border: "border-red-500", text: "text-red-400", icon: icons.trendingDown };
-                default: // Hold
-                    return { bg: "bg-yellow-500/10", border: "border-yellow-500", text: "text-yellow-400", icon: icons.chevronsRight };
-                }
-            };
-            const style = getRecommendationStyle(recommendation);
+            const styles = { Buy: { bg: "bg-green-500/10", border: "border-green-500", text: "text-green-400", icon: icons.trendingUp }, Sell: { bg: "bg-red-500/10", border: "border-red-500", text: "text-red-400", icon: icons.trendingDown }, Hold: { bg: "bg-yellow-500/10", border: "border-yellow-500", text: "text-yellow-400", icon: icons.chevronsRight }};
+            const style = styles[recommendation] || styles.Hold;
             return (
-                <div className={`p-6 rounded-xl border ${style.border} ${style.bg} shadow-lg`}>
-                    <div className="flex items-center">
-                        <div className={`p-2 rounded-full ${style.bg} ${style.text}`}>{style.icon}</div>
-                        <h2 className={`ml-4 text-2xl font-bold ${style.text}`}>{recommendation}</h2>
-                    </div>
-                    <p className="mt-4 text-gray-300">{reason}</p>
-                </div>
+                <div className={`p-6 rounded-xl border ${style.border} ${style.bg} shadow-lg`}><div className="flex items-center"><div className={`p-2 rounded-full ${style.bg} ${style.text}`}>{style.icon}</div><h2 className={`ml-4 text-2xl font-bold ${style.text}`}>{recommendation}</h2></div><p className="mt-4 text-gray-300">{reason}</p></div>
             );
         };
-
+        
         const MovingAveragesCard = ({ data }) => {
             const periods = [21, 50, 100, 200];
             return (
                 <div className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
                     <h3 className="text-xl font-bold mb-4 text-gray-200">Moving Averages</h3>
                     <div className="space-y-2 text-sm">
-                        <div className="grid grid-cols-3 text-xs text-gray-400 font-bold px-2">
-                            <span>Period</span>
-                            <span className="text-center">EMA</span>
-                            <span className="text-center">SMA</span>
-                        </div>
+                        <div className="grid grid-cols-3 text-xs text-gray-400 font-bold px-2"><span>Period</span><span className="text-center">EMA</span><span className="text-center">SMA</span></div>
                         {periods.map(p => {
-                            const ema = data[`ema${p}`];
-                            const sma = data[`sma${p}`];
+                            const ema = data[`ema${p}`], sma = data[`sma${p}`];
                             if (!ema && !sma) return null;
-                            const isAboveEma = data.currentPrice > ema;
-                            const isAboveSma = data.currentPrice > sma;
-                            return (
-                                <div key={p} className="grid grid-cols-3 items-center bg-gray-800 p-2 rounded-md">
-                                    <span className="font-bold text-white">{p}-period</span>
-                                    <span className={`text-center font-semibold ${isAboveEma ? 'text-green-400' : 'text-red-400'}`}>
-                                        ₹{ema.toFixed(2)}
-                                    </span>
-                                    <span className={`text-center font-semibold ${isAboveSma ? 'text-green-400' : 'text-red-400'}`}>
-                                        ₹{sma.toFixed(2)}
-                                    </span>
-                                </div>
-                            );
+                            const isAboveEma = data.currentPrice > ema, isAboveSma = data.currentPrice > sma;
+                            return (<div key={p} className="grid grid-cols-3 items-center bg-gray-800 p-2 rounded-md"><span className="font-bold text-white">{p}-period</span><span className={`text-center font-semibold ${isAboveEma ? 'text-green-400' : 'text-red-400'}`}>₹{ema.toFixed(2)}</span><span className={`text-center font-semibold ${isAboveSma ? 'text-green-400' : 'text-red-400'}`}>₹{sma.toFixed(2)}</span></div>);
                         })}
                     </div>
                 </div>
             );
         };
 
-        // NEW: Component for Fundamental and Valuation Metrics
         const FundamentalsCard = ({ data }) => {
-            // Helper to format values or show N/A
-            const formatValue = (value, toFixed = 2, prefix = '') => {
-                if (value === null || typeof value === 'undefined') return 'N/A';
-                return `${prefix}${typeof value === 'number' ? value.toFixed(toFixed) : value}`;
-            };
-
+            const formatValue = (value, toFixed = 2, prefix = '') => (value === null || typeof value === 'undefined') ? 'N/A' : `${prefix}${typeof value === 'number' ? value.toFixed(toFixed) : value}`;
             return (
                 <div className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
                     <h3 className="text-xl font-bold mb-4 text-gray-200">Fundamentals & Valuation</h3>
                     <div className="space-y-4">
-                        {/* Valuation Section */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-400 mb-3 px-1">Valuation Metrics</h4>
-                            <div className="space-y-2">
-                                <Indicator icon={<div className="text-green-400">{icons.barChart2}</div>} label="PE Ratio" value={formatValue(data.pe)} tooltipText="Price-to-Earnings Ratio. A measure of the company's current share price relative to its per-share earnings."/>
-                                <Indicator icon={<div className="text-green-400">{icons.barChart2}</div>} label="Forward PE" value={formatValue(data.forwardPE)} tooltipText="A version of the P/E ratio that uses forecasted earnings for the P/E calculation."/>
-                                <Indicator icon={<div className="text-purple-400">{icons.barChart2}</div>} label="Price/Book" value={formatValue(data.priceToBook)} tooltipText="Price-to-Book ratio. Compares a company's market capitalization to its book value."/>
-                            </div>
-                        </div>
-                        {/* Fundamentals Section */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-gray-400 mb-3 px-1">Fundamental Ratios</h4>
-                            <div className="space-y-2">
-                                <Indicator icon={<div className="text-teal-400">{icons.trendingUp}</div>} label="EPS" value={formatValue(data.eps, 2, '₹')} tooltipText="Earnings Per Share. The portion of a company's profit allocated to each outstanding share of common stock."/>
-                                <Indicator icon={<div className="text-teal-400">{icons.trendingUp}</div>} label="Forward EPS" value={formatValue(data.forwardEPS, 2, '₹')} tooltipText="Forecasted Earnings Per Share for the next fiscal period."/>
-                                <Indicator icon={<div className="text-cyan-400">{icons.chevronsRight}</div>} label="CFO / PAT" value={formatValue(data.cfoPat)} tooltipText="Cash Flow from Operations to Profit After Tax. A measure of earnings quality. > 1 is generally good."/>
-                                <Indicator icon={<div className="text-indigo-400">{icons.shield}</div>} label="Interest Coverage" value={formatValue(data.interestCoverage)} tooltipText="Measures how many times a company can cover its current interest payments with its available earnings. > 2.5x is often considered healthy."/>
-                            </div>
-                        </div>
+                        <div><h4 className="text-sm font-semibold text-gray-400 mb-3 px-1">Valuation Metrics</h4><div className="space-y-2"><Indicator icon={icons.barChart2} label="PE Ratio" value={formatValue(data.pe)} tooltipText="Price-to-Earnings Ratio."/><Indicator icon={icons.barChart2} label="Forward PE" value={formatValue(data.forwardPE)} tooltipText="P/E ratio using forecasted earnings."/><Indicator icon={icons.barChart2} label="Price/Book" value={formatValue(data.priceToBook)} tooltipText="Price-to-Book ratio."/></div></div>
+                        <div><h4 className="text-sm font-semibold text-gray-400 mb-3 px-1">Fundamental Ratios</h4><div className="space-y-2"><Indicator icon={icons.trendingUp} label="EPS" value={formatValue(data.eps, 2, '₹')} tooltipText="Earnings Per Share."/><Indicator icon={icons.trendingUp} label="Forward EPS" value={formatValue(data.forwardEPS, 2, '₹')} tooltipText="Forecasted Earnings Per Share."/><Indicator icon={icons.chevronsRight} label="CFO / PAT" value={formatValue(data.cfoPat)} tooltipText="Cash Flow from Operations to Profit After Tax."/><Indicator icon={icons.shield} label="Interest Coverage" value={formatValue(data.interestCoverage)} tooltipText="Measures ability to cover interest payments."/></div></div>
                     </div>
                 </div>
             );
         };
 
+        // --- NEW: News Analysis Card ---
+        const NewsAnalysisCard = ({ news }) => {
+            const getSentimentStyle = (sentiment) => {
+                const s = sentiment.toLowerCase();
+                if (s === 'positive') return 'bg-green-500/20 text-green-400';
+                if (s === 'negative') return 'bg-red-500/20 text-red-400';
+                return 'bg-gray-600/20 text-gray-400';
+            };
+
+            if (!news || news.length === 0 || news[0].error) {
+                return (
+                    <div className="p-6 bg-gray-800/50 rounded-xl border border-gray-700 text-center">
+                        <h3 className="text-xl font-bold mb-2 text-gray-200">News Analysis</h3>
+                        <p className="text-gray-500">No news available to analyze.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
+                    <div className="flex items-center mb-4"><div className="text-gray-400">{icons.newspaper}</div><h3 className="text-xl font-bold ml-3 text-gray-200">Latest News & Sentiment</h3></div>
+                    <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                        {news.map((item, index) => (
+                            <div key={index} className="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                                <a href={item.link} target="_blank" rel="noopener noreferrer" className="font-semibold text-white hover:text-green-400 transition-colors">{item.title}</a>
+                                <p className="text-xs text-gray-400 mt-1 mb-2">{item.publisher}</p>
+                                <div className="flex items-center justify-between text-xs">
+                                    <Tooltip text={item.interpretation}><span className="text-gray-500 cursor-help">Why?</span></Tooltip>
+                                    <span className={`px-2 py-1 rounded-full font-medium ${getSentimentStyle(item.sentiment)}`}>{item.sentiment}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Main App Component ---
         function App() {
             const [ticker, setTicker] = React.useState('RELIANCE.NS');
             const [timeframe, setTimeframe] = React.useState('daily');
@@ -193,15 +146,9 @@
             const [initialLoad, setInitialLoad] = React.useState(true);
 
             const analyzeStock = async () => {
-                if (!ticker) {
-                    setError("Please enter a stock ticker.");
-                    return;
-                }
-                setLoading(true);
-                setError(null);
-                setStockData(null);
+                if (!ticker) { setError("Please enter a stock ticker."); return; }
+                setLoading(true); setError(null); setStockData(null);
                 if (initialLoad) setInitialLoad(false);
-
                 try {
                     const response = await fetch(`/analyze/${ticker.toUpperCase()}/${timeframe}`);
                     if (!response.ok) throw new Error(`Backend server error: ${response.status}`);
@@ -209,74 +156,58 @@
                     if (data.error) throw new Error(data.error);
                     setStockData(data);
                 } catch (err) {
-                    setError(`Failed to analyze stock. ${err.message}. Please ensure the backend is running.`);
+                    setError(`Failed to analyze stock. ${err.message}. Ensure backend is running.`);
                 } finally {
                     setLoading(false);
                 }
             };
 
-            const handleFormSubmit = (e) => {
-                e.preventDefault();
-                analyzeStock();
-            };
-
-
-            React.useEffect(() => {
-                if (initialLoad) return;
-                analyzeStock();
-            }, [timeframe]);
+            const handleFormSubmit = (e) => { e.preventDefault(); analyzeStock(); };
+            React.useEffect(() => { if (!initialLoad) analyzeStock(); }, [timeframe]);
 
             return (
-                <div className="bg-gray-900 text-white min-h-screen font-sans p-4 sm:p-6 lg:p-8">
-                    <div className="max-w-4xl mx-auto">
+                <div className="bg-gray-900 text-white min-h-screen p-4 sm:p-6 lg:p-8">
+                    <div className="max-w-7xl mx-auto">
                         <header className="text-center mb-8">
                             <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">Stock Level Analyzer</h1>
-                            <p className="text-gray-400 mt-2">Get technical & fundamental analysis for any NSE stock.</p>
+                            <p className="text-gray-400 mt-2">Get technical, fundamental, and news sentiment analysis for any NSE stock.</p>
                         </header>
 
                         <main>
                             <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl shadow-2xl border border-gray-700">
                                 <div className="flex justify-center gap-2 mb-6">
-                                    {['daily', 'weekly', 'monthly'].map(tf => (
-                                        <button key={tf} onClick={() => setTimeframe(tf)} className={`bg-gray-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center shadow-lg hover:shadow-green-500/30 ${timeframe === tf ? 'bg-green-600 text-white shadow' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>{tf.charAt(0).toUpperCase() + tf.slice(1)}</button>
-                                    ))}
+                                    {['daily', 'weekly', 'monthly'].map(tf => (<button key={tf} onClick={() => setTimeframe(tf)} className={`font-bold py-3 px-6 rounded-lg transition duration-300 shadow-lg ${timeframe === tf ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>{tf.charAt(0).toUpperCase() + tf.slice(1)}</button>))}
                                 </div>
                                 <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row gap-4">
-                                    <input type="text" value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="Enter Stock Ticker (e.g., RELIANCE.NS)" className="flex-grow bg-gray-700 text-white placeholder-gray-400 border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300"/>
-                                    <button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center shadow-lg hover:shadow-green-500/30">
-                                        {loading ? (<><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Analyzing...</>) : 'Analyze'}
-                                    </button>
+                                    <input type="text" value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="Enter Stock Ticker (e.g., RELIANCE.NS)" className="flex-grow bg-gray-700 text-white placeholder-gray-400 border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500"/>
+                                    <button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center">{loading ? 'Analyzing...' : 'Analyze'}</button>
                                 </form>
                             </div>
                             
                             <div className="mt-8">
-                                {error && <p className="text-red-400 mt-4 text-center bg-red-500/10 p-4 rounded-lg">{error}</p>}
-                                {initialLoad && !error && (
-                                    <div className="text-center p-8 bg-gray-800/30 rounded-lg">
-                                        <div className="mx-auto text-gray-500">{icons.activity}</div>
-                                        <h3 className="mt-4 text-xl font-semibold text-gray-400">Welcome</h3>
-                                        <p className="text-gray-500">Select a timeframe, enter a stock ticker, and click "Analyze".</p>
-                                    </div>
-                                )}
+                                {error && <p className="text-red-400 text-center bg-red-500/10 p-4 rounded-lg">{error}</p>}
+                                {initialLoad && !error && <div className="text-center p-8 bg-gray-800/30 rounded-lg"><div className="mx-auto text-gray-500">{icons.activity}</div><h3 className="mt-4 text-xl font-semibold text-gray-400">Welcome</h3><p className="text-gray-500">Enter a stock ticker to begin.</p></div>}
+                                
                                 {stockData && !loading && !error && (
-                                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8 animate-fade-in">
-                                    <div className="md:col-span-2 space-y-6">
+                                <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
+                                    <div className="lg:col-span-2 space-y-6">
                                         <RecommendationCard recommendation={stockData.recommendation} reason={stockData.reason} />
                                         <div className="p-6 bg-gray-800/50 rounded-xl border border-gray-700">
                                             <h3 className="text-xl font-bold mb-4 text-gray-200">Key Technical Metrics</h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <Indicator icon={<div className="text-green-400">{icons.trendingUp}</div>} label="Current Price" value={`₹${stockData.currentPrice.toFixed(2)}`} tooltipText="The latest trading price of the stock."/>
-                                                <Indicator icon={<div className="text-teal-400">{icons.arrowsUpDown}</div>} label="52W High / Low" value={`₹${stockData.high52w.toFixed(2)} / ₹${stockData.low52w.toFixed(2)}`} tooltipText="The highest and lowest price over the past 52 weeks."/>
-                                                <Indicator icon={<div className="text-blue-400">{icons.barChart2}</div>} label="RSI (14)" value={stockData.rsi.toFixed(2)} valueClassName={stockData.rsi > 55 ? 'text-green-400' : 'text-red-400'} tooltipText="Relative Strength Index. Above 55 suggests bullish momentum."/>
-                                                <Indicator icon={<div className="text-yellow-400">{icons.zap}</div>} label="ADX (14)" value={stockData.adx.toFixed(2)} valueClassName={stockData.adx > 25 ? 'text-green-400' : 'text-red-400'} tooltipText="Average Directional Index. Above 25 indicates a strong trend."/>
-                                                <Indicator icon={<div className="text-purple-400">{icons.shield}</div>} label="VStop" value={`₹${stockData.vstop.toFixed(2)}`} valueClassName={stockData.currentPrice > stockData.vstop ? 'text-green-400' : 'text-red-400'} tooltipText="Volatility Stop. A trailing stop loss based on volatility."/>
-                                                <Indicator icon={<div className="text-cyan-400">{icons.arrowUp}</div>} label="PSAR" value={stockData.psar ? `₹${stockData.psar.toFixed(2)}` : 'N/A'} valueClassName={stockData.psar && stockData.currentPrice > stockData.psar ? 'text-green-400' : 'text-red-400'} tooltipText="Parabolic SAR. Price above PSAR is bullish."/>
-                                                <Indicator icon={<div className="text-pink-400">{icons.barChart2}</div>} label="Relative Strength" value={stockData.relativeStrength.toFixed(2)} valueClassName={stockData.relativeStrength > 0 ? 'text-green-400' : 'text-red-400'} tooltipText="Stock's performance vs. NIFTY50. >0 means outperformance."/>
-                                                <Indicator icon={<div className="text-indigo-400">{icons.barChart2}</div>} label="Chart Pattern" value={stockData.chartPattern} tooltipText="Identified technical chart pattern (based on daily data)."/>
+                                                <Indicator icon={icons.trendingUp} label="Current Price" value={`₹${stockData.currentPrice.toFixed(2)}`} tooltipText="The latest trading price."/>
+                                                <Indicator icon={icons.arrowsUpDown} label="52W High / Low" value={`₹${stockData.high52w.toFixed(2)} / ₹${stockData.low52w.toFixed(2)}`} tooltipText="The 52-week price range."/>
+                                                <Indicator icon={icons.barChart2} label="RSI (14)" value={stockData.rsi.toFixed(2)} valueClassName={stockData.rsi > 55 ? 'text-green-400' : 'text-red-400'} tooltipText="Relative Strength Index. >55 is bullish."/>
+                                                <Indicator icon={icons.zap} label="ADX (14)" value={stockData.adx.toFixed(2)} valueClassName={stockData.adx > 25 ? 'text-green-400' : 'text-red-400'} tooltipText="Average Directional Index. >25 indicates a strong trend."/>
+                                                <Indicator icon={icons.shield} label="VStop" value={`₹${stockData.vstop.toFixed(2)}`} valueClassName={stockData.currentPrice > stockData.vstop ? 'text-green-400' : 'text-red-400'} tooltipText="Volatility Stop. Price above is bullish."/>
+                                                <Indicator icon={icons.arrowUp} label="PSAR" value={stockData.psar ? `₹${stockData.psar.toFixed(2)}` : 'N/A'} valueClassName={stockData.psar && stockData.currentPrice > stockData.psar ? 'text-green-400' : 'text-red-400'} tooltipText="Parabolic SAR. Price above is bullish."/>
+                                                <Indicator icon={icons.barChart2} label="Relative Strength" value={stockData.relativeStrength.toFixed(2)} valueClassName={stockData.relativeStrength > 0 ? 'text-green-400' : 'text-red-400'} tooltipText="Performance vs. NIFTY50."/>
+                                                <Indicator icon={icons.barChart2} label="Chart Pattern" value={stockData.chartPattern} tooltipText="Identified technical chart pattern."/>
                                             </div>
                                         </div>
+                                        {/* News card is now here */}
+                                        <NewsAnalysisCard news={stockData.news} />
                                     </div>
-                                    {/* MODIFIED: Right column now contains both Moving Averages and the new Fundamentals card */}
                                     <div className="space-y-6">
                                         <MovingAveragesCard data={stockData} />
                                         <FundamentalsCard data={stockData} />
@@ -285,18 +216,13 @@
                                 )}
                             </div>
                         </main>
-                        <footer className="text-center mt-12 text-gray-500 text-sm">
-                            <p>Disclaimer: This is not financial advice. All data is for informational purposes only.</p>
-                            <p>Data provided by Yahoo Finance.</p>
-                        </footer>
+                        <footer className="text-center mt-12 text-gray-500 text-sm"><p>Disclaimer: This is not financial advice. All data is for informational purposes only.</p><p>Data provided by Yahoo Finance.</p></footer>
                     </div>
                 </div>
             );
         }
 
-        const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>

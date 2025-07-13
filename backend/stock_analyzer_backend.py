@@ -61,9 +61,8 @@ def calculate_vstop(df, atr_period=14, multiplier=2.0, lookback_period=1):
                     vstop.iloc[i] = min(vstop.iloc[i - 1], low_period + multiplier * atr.iloc[i])
                 fLow += 1
                 fHigh = 0
-    # print(vstop)
+
     df['VStop'] = vstop
-    print(df['VStop'].iloc[-1])
     return df['VStop'].iloc[-1]
 
 
@@ -101,7 +100,7 @@ def get_chart_pattern(df):
 # -----------------------------------------------------------------------------
 def get_stock_analysis(ticker, timeframe):
     """
-    Fetches stock data and performs all technical analysis based on the selected timeframe.
+    Fetches stock data and performs all technical and fundamental analysis.
     """
     try:
         # 1. Define data fetching parameters based on timeframe
@@ -132,76 +131,76 @@ def get_stock_analysis(ticker, timeframe):
         high_52w = daily_data['High'].max() if not daily_data.empty else 0
         low_52w = daily_data['Low'].min() if not daily_data.empty else 0
 
-        # 4. Calculate all indicators using pandas_ta
-        # EMAs
+        # 4. Calculate all technical indicators using pandas_ta
         stock_data.ta.ema(length=21, append=True)
         stock_data.ta.ema(length=50, append=True)
         stock_data.ta.ema(length=100, append=True)
         stock_data.ta.ema(length=200, append=True)
-        # SMAs
         stock_data.ta.sma(length=21, append=True)
         stock_data.ta.sma(length=50, append=True)
         stock_data.ta.sma(length=100, append=True)
         stock_data.ta.sma(length=200, append=True)
-        # Other indicators
         stock_data.ta.rsi(length=14, append=True)
         stock_data.ta.adx(length=14, append=True)
         stock_data.ta.psar(append=True)
         stock_data.ta.donchian(lower_length=20, upper_length=20, append=True)
 
-        # 5. Get the latest values for all indicators
+        # 5. Get the latest values for all technical indicators
         latest_data = stock_data.iloc[-1]
         current_price = latest_data['Close']
-        
-        # Get EMAs
-        ema21 = latest_data.get('EMA_21', 0)
-        ema50 = latest_data.get('EMA_50', 0)
-        ema100 = latest_data.get('EMA_100', 0)
-        ema200 = latest_data.get('EMA_200', 0)
-
-        # Get SMAs
-        sma21 = latest_data.get('SMA_21', 0)
-        sma50 = latest_data.get('SMA_50', 0)
-        sma100 = latest_data.get('SMA_100', 0)
-        sma200 = latest_data.get('SMA_200', 0)
-
-        rsi = latest_data.get('RSI_14', 0)
-        adx = latest_data.get('ADX_14', 0)
-        psar_long = latest_data.get('PSARl_0.02_0.2')
-        psar_short = latest_data.get('PSARs_0.02_0.2')
+        ema21, ema50, ema100, ema200 = latest_data.get('EMA_21', 0), latest_data.get('EMA_50', 0), latest_data.get('EMA_100', 0), latest_data.get('EMA_200', 0)
+        sma21, sma50, sma100, sma200 = latest_data.get('SMA_21', 0), latest_data.get('SMA_50', 0), latest_data.get('SMA_100', 0), latest_data.get('SMA_200', 0)
+        rsi, adx = latest_data.get('RSI_14', 0), latest_data.get('ADX_14', 0)
+        psar_long, psar_short = latest_data.get('PSARl_0.02_0.2'), latest_data.get('PSARs_0.02_0.2')
         psar = psar_long if not pd.isna(psar_long) else psar_short
-
         donchian_upper = latest_data.get('DCU_20_20', 0)
         
-        # 6. Calculate custom indicators
+        # 6. Calculate custom technical indicators
         vstop = calculate_vstop(stock_data)
         relative_strength = calculate_relative_strength(stock_data, nifty_data)
-        chart_pattern = get_chart_pattern(daily_data) # Use daily data for pattern
+        chart_pattern = get_chart_pattern(daily_data)
 
-        # 7. Apply the recommendation logic (now includes SMAs)
-        is_strong_uptrend = (
-            current_price > ema50 and current_price > sma50 and
-            current_price > ema200 and current_price > sma200
-        )
+        # 7. Fetch and Calculate Fundamental Data
+        info = stock_ticker.info
+        pe = info.get('trailingPE')
+        forwardPE = info.get('forwardPE')
+        eps = info.get('trailingEps')
+        forwardEPS = info.get('forwardEps')
+        priceToBook = info.get('priceToBook')
 
-        is_buy_signal = (
-            is_strong_uptrend and
-            rsi > 55 and
-            adx > 25 and
-            current_price > vstop and
-            current_price > psar
-        )
-        
-        is_sell_signal = (
-            current_price < ema50 and
-            current_price < vstop and
-            current_price < psar and
-            rsi < 45
-        )
+        # Calculate CFO/PAT and Interest Coverage from financials
+        cfoPat = None
+        interestCoverage = None
+        try:
+            financials = stock_ticker.financials
+            cashflow = stock_ticker.cashflow
+            
+            if not financials.empty and not cashflow.empty:
+                # Get the most recent annual data
+                pat = financials.loc['Net Income'].iloc[0] if 'Net Income' in financials.index else 0
+                cfo = cashflow.loc['Free Cash Flow'].iloc[0] if 'Free Cash Flow' in cashflow.index else 0
+
+                if pat and cfo:
+                    cfoPat = cfo / pat
+
+                ebit = financials.loc['EBIT'].iloc[0] if 'EBIT' in financials.index else 0
+                interest_expense = financials.loc['Interest Expense'].iloc[0] if 'Interest Expense' in financials.index else 0
+                
+                if ebit and interest_expense:
+                    # Use absolute for interest expense as it's often negative
+                    interestCoverage = ebit / abs(interest_expense)
+
+        except Exception as e:
+            print(f"Could not calculate some fundamental ratios: {e}")
+
+
+        # 8. Apply the recommendation logic
+        is_strong_uptrend = current_price > ema50 and current_price > sma50 and current_price > ema200 and current_price > sma200
+        is_buy_signal = is_strong_uptrend and rsi > 55 and adx > 25 and current_price > vstop and current_price > psar
+        is_sell_signal = current_price < ema50 and current_price < vstop and current_price < psar and rsi < 45
         
         recommendation = "Hold"
         reason = f"On a {timeframe} basis, conditions are mixed. Advisable to wait for a clearer trend."
-
         if is_buy_signal:
             recommendation = "Buy"
             reason = f"Strong bullish signals on the {timeframe} chart. Price is above key moving averages (50 & 200), with strong RSI (>55) and ADX (>25) momentum."
@@ -209,8 +208,9 @@ def get_stock_analysis(ticker, timeframe):
             recommendation = "Sell"
             reason = f"Bearish signals on the {timeframe} chart. Price has dropped below key support levels (50-period MA, VStop, PSAR) with weakening RSI."
 
-        # 8. Format the final JSON response
+        # 9. Format the final JSON response with all data
         return {
+            # Technicals
             "currentPrice": current_price,
             "high52w": high_52w,
             "low52w": low_52w,
@@ -224,12 +224,20 @@ def get_stock_analysis(ticker, timeframe):
             "relativeStrength": relative_strength,
             "chartPattern": chart_pattern,
             "recommendation": recommendation,
-            "reason": reason
+            "reason": reason,
+            # Fundamentals
+            "pe": pe,
+            "forwardPE": forwardPE,
+            "eps": eps,
+            "forwardEPS": forwardEPS,
+            "priceToBook": priceToBook,
+            "cfoPat": cfoPat,
+            "interestCoverage": interestCoverage
         }
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return {"error": "An error occurred while processing the request. The ticker might be invalid or delisted."}
+        return {"error": "An error occurred while processing the request. The ticker might be invalid, delisted, or has missing data."}
 
 
 # -----------------------------------------------------------------------------
@@ -239,7 +247,7 @@ def get_stock_analysis(ticker, timeframe):
 def analyze_stock_endpoint(ticker, timeframe):
     """
     API endpoint to get stock analysis.
-    Example URL: http://127.0.0.1:5000/analyze/RELIANCE.NS/daily
+    Example URL: http://122.160.62.158:5000/analyze/RELIANCE.NS/daily
     """
     analysis_result = get_stock_analysis(ticker, timeframe)
     return jsonify(analysis_result)
@@ -253,4 +261,4 @@ def index():
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     # Use 0.0.0.0 to make it accessible on your network
-    app.run(host='0.0.0.0', port=5000, ssl_context=('cert.pem', 'key.pem'), debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

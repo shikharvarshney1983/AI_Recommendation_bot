@@ -203,7 +203,7 @@
                 if (initialLoad) setInitialLoad(false);
 
                 try {
-                    const response = await fetch(`http://127.0.0.1:5000/analyze/${ticker.toUpperCase()}/${timeframe}`);
+                    const response = await fetch(`/analyze/${ticker.toUpperCase()}/${timeframe}`);
                     if (!response.ok) throw new Error(`Backend server error: ${response.status}`);
                     const data = await response.json();
                     if (data.error) throw new Error(data.error);
@@ -219,6 +219,7 @@
                 e.preventDefault();
                 analyzeStock();
             };
+
 
             React.useEffect(() => {
                 if (initialLoad) return;

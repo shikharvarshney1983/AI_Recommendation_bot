@@ -177,8 +177,8 @@ def get_stock_analysis(ticker, timeframe):
             
             if not financials.empty and not cashflow.empty:
                 # Get the most recent annual data
-                pat = financials.loc['Net Income'].iloc[0] if 'Net Income' in financials.index else 0
-                cfo = cashflow.loc['Free Cash Flow'].iloc[0] if 'Free Cash Flow' in cashflow.index else 0
+                pat = financials.loc['Net Income Continuous Operations'].iloc[0] if 'Net Income Continuous Operations' in financials.index else 0
+                cfo = cashflow.loc['Operating Cash Flow'].iloc[0] if 'Operating Cash Flow' in cashflow.index else 0
 
                 if pat and cfo:
                     cfoPat = cfo / pat

@@ -8,4 +8,5 @@ transformers
 torch
 bse
 scipy
-request
+requests
+BeautifulSoup

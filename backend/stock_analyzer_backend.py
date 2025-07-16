@@ -1,17 +1,20 @@
 # Install necessary libraries before running:
 # pip install Flask Flask-Cors yfinance pandas pandas-ta transformers torch
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, session
 from flask_cors import CORS
 import yfinance as yf
 import pandas as pd
 import pandas_ta as ta
-from news_analyzer import get_news_analysis # Import the new function
+from news_analyzer import get_news_and_announcements # Import the new function
 
 # -----------------------------------------------------------------------------
 # Backend Setup (Flask)
 # -----------------------------------------------------------------------------
 app = Flask(__name__)
+
+app.secret_key = 'BAD_SECRET_KEY'  # Set a secret key for session management
+# Note: In production, use a more secure key and consider using environment variables.
 # Enable CORS to allow the React frontend to communicate with this backend
 CORS(app)
 
@@ -134,7 +137,7 @@ def get_stock_analysis(ticker, timeframe):
         except Exception as e: print(f"Could not calculate some fundamental ratios: {e}")
 
         # Fetch and analyze news
-        news_data = get_news_analysis(ticker)
+        news_data = get_news_and_announcements(ticker.split(".")[0], info.get('longName'))
 
         is_strong_uptrend = current_price > ema50 and current_price > sma50 and current_price > ema200 and current_price > sma200
         is_buy_signal = is_strong_uptrend and rsi > 55 and adx > 25 and current_price > vstop and current_price > psar

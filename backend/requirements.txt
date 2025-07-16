@@ -9,4 +9,4 @@ torch
 bse
 scipy
 requests
-BeautifulSoup
+beautifulsoup4
